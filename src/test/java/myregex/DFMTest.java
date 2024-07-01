@@ -17,9 +17,9 @@ public class DFMTest extends Assert {
         DFM dfm = dfm1.multiplication(dfm2, true, false);
 
         String expected = """
-                0: (a, 1) Actions count: 0
-                1: (b, 2) Actions count: 0
-                2: Actions count: 0
+                0: ((a, 1))
+                1: ((b, 2))
+                2:
                 """;
         String actual = dfm.toString();
         assertEquals(expected, actual);
@@ -34,9 +34,9 @@ public class DFMTest extends Assert {
         dfm = dfm1.multiplication(dfm2, true, false);
 
         expected = """
-                0: (a, 1) Actions count: 0
-                1: (a, 2) Actions count: 0
-                2: (a, 2) Actions count: 0 Is end
+                0: ((a, 1))
+                1: ((a, 2))
+                2: ((a, 2)) Is end
                 """;
         actual = dfm.toString();
         assertEquals(expected, actual);
@@ -51,9 +51,9 @@ public class DFMTest extends Assert {
         dfm = dfm1.multiplication(dfm2, true, false);
 
         expected = """
-                0: (a, 1) (b, 2) Actions count: 0
-                1: Actions count: 0
-                2: Actions count: 0 Is end
+                0: ((a, 1)) ((b, 2))
+                1:
+                2: Is end
                 """;
         actual = dfm.toString();
         assertEquals(expected, actual);
@@ -68,9 +68,9 @@ public class DFMTest extends Assert {
         dfm = dfm1.multiplication(dfm2, true, false);
 
         expected = """
-                0: (a, 1) Actions count: 0 Is end
-                1: (a, 2) Actions count: 0
-                2: (a, 2) Actions count: 0 Is end
+                0: ((a, 1)) Is end
+                1: ((a, 2))
+                2: ((a, 2)) Is end
                 """;
         actual = dfm.toString();
         assertEquals(expected, actual);
@@ -82,10 +82,10 @@ public class DFMTest extends Assert {
         NFM nfm = NFM.buildFromAst(ast);
         DFM dfm = new DFM(nfm);
         String expected = """
-                0: (a, 1) Actions count: 0
-                1: (s, 2) Actions count: 0
-                2: (t, 3) Actions count: 0
-                3: Actions count: 0 Is end
+                0: ((a, 1))
+                1: ((s, 2))
+                2: ((t, 3))
+                3: Is end
                 """;
         String actual = dfm.toString();
         assertEquals(expected, actual);
@@ -97,9 +97,9 @@ public class DFMTest extends Assert {
         NFM nfm = NFM.buildFromAst(ast);
         DFM dfm = new DFM(nfm);
         String expected = """
-                0: (a, 1) Actions count: 0
-                1: (s, 2) Actions count: 0
-                2: Actions count: 0 Is end
+                0: ((a, 1))
+                1: ((s, 2))
+                2: Is end
                 """;
         String actual = dfm.toString();
         assertEquals(expected, actual);
@@ -111,8 +111,8 @@ public class DFMTest extends Assert {
         NFM nfm = NFM.buildFromAst(ast);
         DFM dfm = new DFM(nfm);
         String expected = """
-                0: (a, 1) Actions count: 0
-                1: (a, 1) Actions count: 0 Is end
+                0: ((a, 1))
+                1: ((a, 1)) Is end
                 """;
         String actual = dfm.toString();
         assertEquals(expected, actual);
@@ -124,9 +124,9 @@ public class DFMTest extends Assert {
         NFM nfm = NFM.buildFromAst(ast);
         DFM dfm = new DFM(nfm);
         String expected = """
-                0: (a, 1) (b, 2) Actions count: 0
-                1: Actions count: 0 Is end
-                2: Actions count: 0 Is end
+                0: ((a, 1)) ((b, 2))
+                1: Is end
+                2: Is end
                 """;
         String actual = dfm.toString();
         assertEquals(expected, actual);
@@ -138,8 +138,8 @@ public class DFMTest extends Assert {
         NFM nfm = NFM.buildFromAst(ast);
         DFM dfm = new DFM(nfm);
         String expected = """
-                0: (a, 1) Actions count: 1
-                1: Actions count: 1 Is end
+                0: ((a, 1), Action: 2)
+                1: Is end
                 """;
         String actual = dfm.toString();
         assertEquals(expected, actual);
@@ -151,8 +151,8 @@ public class DFMTest extends Assert {
         NFM nfm = NFM.buildFromAst(ast);
         DFM dfm = new DFM(nfm);
         String expected = """
-                0: (a, 1) Actions count: 0 Is end
-                1: Actions count: 0 Is end
+                0: ((a, 1)) Is end
+                1: Is end
                 """;
         String actual = dfm.toString();
         assertEquals(expected, actual);
@@ -161,11 +161,11 @@ public class DFMTest extends Assert {
         nfm = NFM.buildFromAst(ast);
         dfm = new DFM(nfm);
         expected = """
-                0: (a, 1) Actions count: 0
-                1: (a, 2) Actions count: 0
-                2: (a, 3) Actions count: 0 Is end
-                3: (a, 4) Actions count: 0 Is end
-                4: Actions count: 0 Is end
+                0: ((a, 1))
+                1: ((a, 2))
+                2: ((a, 3)) Is end
+                3: ((a, 4)) Is end
+                4: Is end
                 """;
         actual = dfm.toString();
         assertEquals(expected, actual);
@@ -174,8 +174,8 @@ public class DFMTest extends Assert {
         nfm = NFM.buildFromAst(ast);
         dfm = new DFM(nfm);
         expected = """
-                0: (a, 1) Actions count: 0 Is end
-                1: (a, 1) Actions count: 0 Is end
+                0: ((a, 1)) Is end
+                1: ((a, 1)) Is end
                 """;
         actual = dfm.toString();
         assertEquals(expected, actual);
@@ -184,8 +184,8 @@ public class DFMTest extends Assert {
         nfm = NFM.buildFromAst(ast);
         dfm = new DFM(nfm);
         expected = """
-                0: (a, 1) Actions count: 0
-                1: Actions count: 0 Is end
+                0: ((a, 1))
+                1: Is end
                 """;
         actual = dfm.toString();
         assertEquals(expected, actual);
@@ -194,8 +194,8 @@ public class DFMTest extends Assert {
         nfm = NFM.buildFromAst(ast);
         dfm = new DFM(nfm);
         expected = """
-                0: (a, 1) Actions count: 0 Is end
-                1: (a, 1) Actions count: 0 Is end
+                0: ((a, 1)) Is end
+                1: ((a, 1)) Is end
                 """;
         actual = dfm.toString();
         assertEquals(expected, actual);

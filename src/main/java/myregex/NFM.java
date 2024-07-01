@@ -127,49 +127,11 @@ record NFM(State start, State end) {
         return result;
     }
 
-    private static NFM combineStarNFM(NFM machine) {
-        State start = new State();
-        start.addTransaction(null, machine.start());
-        State end = new State();
-        start.addTransaction(null, end);
-        machine.end().addTransaction(null, end);
-        machine.end().addTransaction(null, machine.start());
-
-        return new NFM(start, end);
-    }
-
-    private static NFM combineGroupNFM(NFM machine, int number) {
-        State start = new State();
-        State end = new State();
-        start.addTransaction(null, machine.start());
-        machine.end().addTransaction(null, end);
-        start.setAction(data -> {
-            int position = data.first();
-            Pair<Integer, Integer> group = new Pair<>(position, null);
-
-            data.second().remove(number);
-
-            data.second().put(number, group);
-
-        });
-        end.setAction(data -> {
-            int position = data.first();
-            Pair<Integer, Integer> oldGroup = data.second().get(number);
-            data.second().remove(number);
-
-            Pair<Integer, Integer> group = new Pair<>(oldGroup.first(), position);
-            data.second().put(number, group);
-
-        });
-        return new NFM(start, end);
-    }
-
     private static Pair<State, State> clone(State state) {
         return clone(state, new HashMap<>());
     }
     private static Pair<State, State> clone(State state, HashMap<State, State> passedStates) {
         State newState = new State();
-        newState.setAction(state.getAction());
         passedStates.put(state, newState);
 
         Transaction transaction = state.getTransaction();
@@ -183,16 +145,16 @@ record NFM(State start, State end) {
         State end = null;
         if (transaction != null) {
             State next;
-            if (!passedStates.containsKey(transaction.state())) {
-                Pair<State, State> result = clone(transaction.state(), passedStates);
+            if (!passedStates.containsKey(transaction.getState())) {
+                Pair<State, State> result = clone(transaction.getState(), passedStates);
                 if (result.second() != null) {
                     end = result.second();
                 }
                 next = result.first();
             } else {
-                next = passedStates.get(transaction.state());
+                next = passedStates.get(transaction.getState());
             }
-            newState.addTransaction(transaction.symbol(), next);
+            newState.addTransaction(transaction.getSymbol(), next, transaction.getActions());
         }
 
         for (State current : state.getEpsilonTransactions()) {
@@ -212,42 +174,161 @@ record NFM(State start, State end) {
         return new Pair<>(newState, end);
     }
 
+    private static NFM combineStarNFM(NFM machine) {
+        State start = new State();
+        start.addTransaction(null, machine.start());
+        State end = new State();
+        start.addTransaction(null, end);
+        machine.end().addTransaction(null, end);
+        machine.end().addTransaction(null, machine.start());
+
+        return new NFM(start, end);
+    }
+
+    private static NFM combineGroupNFM(NFM machine, int number) {
+        Action start = data -> {
+            int position = data.first();
+
+            Pair<Pair<Integer, Integer>, Boolean> group;
+            if (data.second().containsKey(number)) {
+                Pair<Pair<Integer, Integer>, Boolean> oldGroup = data.second().get(number);
+                group = new Pair<>(
+                        new Pair<>(position, oldGroup.first().second()),
+                        oldGroup.second());
+            } else {
+                group = new Pair<>(
+                        new Pair<>(position, null),
+                        false);
+            }
+
+            data.second().remove(number);
+            data.second().put(number, group);
+
+        };
+
+        Set<Transaction> transactions = machine.getTransactions(
+                machine.getEpsilonClosure(machine.start()));
+        transactions.forEach(transaction -> transaction.addAction(start));
+
+        Action end = data -> {
+            int position = data.first() + 1;
+
+            Pair<Pair<Integer, Integer>, Boolean> group;
+            if (data.second().containsKey(number)) {
+                Pair<Pair<Integer, Integer>, Boolean> oldGroup = data.second().get(number);
+                group = new Pair<>(
+                        new Pair<>(oldGroup.first().first(), position),
+                        true);
+            } else {
+                group = new Pair<>(
+                        new Pair<>(null, position),
+                        true);
+            }
+
+            data.second().remove(number);
+            data.second().put(number, group);
+
+        };
+
+        Set<State> states = machine.getAllStates();
+        states.forEach(state -> {
+            Transaction transaction = state.getTransaction();
+            if (transaction != null) {
+                StateSet stateSet = machine.getEpsilonClosure(transaction.getState());
+                if (machine.isEndState(stateSet)) {
+                    transaction.addAction(end);
+                }
+            }
+        });
+
+        return machine;
+    }
+
+    private Set<State> getAllStates() {
+        LinkedHashSet<State> states = new LinkedHashSet<>();
+
+        if (start == null) {
+            return states;
+        }
+
+        LinkedList<State> queue = new LinkedList<>();
+        queue.add(start);
+
+        State current;
+        while (!queue.isEmpty()) {
+            current = queue.getFirst();
+            queue.removeFirst();
+
+            states.addLast(current);
+
+            boolean transactionExists = (current.getTransaction() != null);
+            if (transactionExists) {
+                State next = current.getTransaction().getState();
+                boolean isNewState = ((!states.contains(next)) &&
+                        (!queue.contains(next)));
+                if (isNewState) {
+                    queue.addLast(next);
+                }
+            }
+
+            for (State next : current.getEpsilonTransactions()) {
+                boolean isNewState = ((!states.contains(next)) &&
+                        (!queue.contains(next)));
+                if (isNewState) {
+                    queue.addLast(next);
+                }
+            }
+
+        }
+
+        return states;
+    }
+
     private Pair<Integer, String> stateToString(State state, int current, HashMap<State, Integer> states) {
         StringBuilder result = new StringBuilder();
         result.append(states.get(state))
                 .append(":");
+
         if (state.getTransaction() != null) {
-            State next = state.getTransaction().state();
+
+            result.append(" (")
+                    .append("(")
+                    .append(state.getTransaction().getSymbol())
+                    .append(", ");
+
+            State next = state.getTransaction().getState();
             if (states.containsKey(next)) {
-                result.append(" (")
-                        .append(state.getTransaction().symbol())
-                        .append(", ")
-                        .append(states.get(next).toString())
-                        .append(")");
+                result.append(states.get(next).toString());
             } else {
-                result.append(" (")
-                        .append(state.getTransaction().symbol())
-                        .append(", ")
-                        .append(current)
-                        .append(")");
+                result.append(current);
                 states.put(next, current);
                 current++;
             }
+
+            result.append(")");
+
+            if (!state.getTransaction().getActions().isEmpty()) {
+                result.append(", Actions: ")
+                        .append(state.getTransaction().getActions().size());
+            }
+
+            result.append(")");
+
         }
 
         for (State next : state.getEpsilonTransactions()) {
+            result.append(" (");
+
             if (states.containsKey(next)) {
-                result.append(" (".concat(states.get(next).toString()))
-                        .append(")");
+                result.append(states.get(next).toString());
             } else {
-                result.append(" (").append(current).append(")");
+                result.append(current);
                 states.put(next, current);
                 current++;
             }
-        }
 
-        if (state.getAction() != null) {
-            result.append(" ").append("Action");
+            result.append(")");
+
         }
 
         result.append("\n");
@@ -277,7 +358,7 @@ record NFM(State start, State end) {
             passedStates.add(current);
 
             if (current.getTransaction() != null) {
-                State next = current.getTransaction().state();
+                State next = current.getTransaction().getState();
                 boolean isNewState = !passedStates.contains(next)
                         && !queue.contains(next);
                 if (isNewState) {
@@ -292,43 +373,10 @@ record NFM(State start, State end) {
                     queue.addLast(next);
                 }
             }
+
         }
 
         return result.toString();
-    }
-
-    private static class State {
-
-        private Transaction transaction = null;
-        private final Set<State> epsilonTransactions = new LinkedHashSet<>();
-
-        public Action action = null;
-
-        public void setAction(Action action) {
-            this.action = action;
-        }
-
-        public Action getAction() {
-            return action;
-        }
-
-        public void addTransaction(Character symbol, State state) {
-            boolean isEpsilon = (symbol == null);
-            if (isEpsilon) {
-                epsilonTransactions.add(state);
-            } else {
-                transaction = new Transaction(symbol, state);
-            }
-        }
-
-        public Set<State> getEpsilonTransactions() {
-            return epsilonTransactions;
-        }
-
-        public Transaction getTransaction() {
-            return transaction;
-        }
-
     }
 
     private StateSet getEpsilonClosure(State state) {
@@ -364,25 +412,41 @@ record NFM(State start, State end) {
         return result;
     }
 
-    public HashMap<Character, StateSet> getSateSetsBySymbols(StateSet stateSet) {
-        HashMap<Character, StateSet> result = new HashMap<>();
+    public HashMap<Character, Pair<StateSet, Set<Action>>> getSateSetsBySymbols(StateSet stateSet) {
+        HashMap<Character, Pair<StateSet, Set<Action>>> result = new HashMap<>();
 
         for (State state: stateSet.states) {
             Transaction transaction = state.getTransaction();
-            boolean transactionExist = (transaction != null);
-            if (transactionExist) {
-                char symbol = transaction.symbol();
+            boolean transactionExists = (transaction != null);
+            if (transactionExists) {
+                char symbol = transaction.getSymbol();
                 if (result.containsKey(symbol)) {
-                    result.get(symbol).states.add(transaction.state());
+                    result.get(symbol).first().states.add(transaction.getState());
+                    result.get(symbol).second().addAll(transaction.getActions());
                 } else {
                     StateSet states = new StateSet();
-                    states.states.add(transaction.state());
-                    result.put(symbol, states);
+                    Set<Action> actions = new HashSet<>(transaction.getActions());
+                    states.states.add(transaction.getState());
+                    result.put(symbol, new Pair<>(states, actions));
                 }
             }
         }
 
         return result;
+    }
+
+    private Set<Transaction> getTransactions(StateSet stateSet) {
+        Set<Transaction> transactions = new HashSet<>();
+
+        for (State state: stateSet.states) {
+            Transaction transaction = state.getTransaction();
+            boolean transactionExists = (transaction != null);
+            if (transactionExists) {
+                transactions.add(transaction);
+            }
+        }
+
+        return transactions;
     }
 
     public boolean isEndState(StateSet stateSet) {
@@ -394,18 +458,74 @@ record NFM(State start, State end) {
         return false;
     }
 
-    public LinkedHashSet<Action> getActions(StateSet stateSet) {
-        LinkedHashSet<Action> resul = new LinkedHashSet<>();
-        for (State state: stateSet.states) {
-            boolean hasAction = (state.getAction() != null);
-            if (hasAction) {
-                resul.addLast(state.getAction());
+    private static class State {
+
+        private Transaction transaction = null;
+        private final Set<State> epsilonTransactions = new LinkedHashSet<>();
+
+        public void addTransaction(Character symbol, State state, Set<Action> actions) {
+            boolean isEpsilon = (symbol == null);
+            if (isEpsilon) {
+                epsilonTransactions.add(state);
+            } else {
+                transaction = new Transaction(symbol, state, actions);
             }
         }
-        return resul;
+
+        public void addTransaction(Character symbol, State state) {
+            boolean isEpsilon = (symbol == null);
+            if (isEpsilon) {
+                epsilonTransactions.add(state);
+            } else {
+                transaction = new Transaction(symbol, state);
+            }
+        }
+
+        public Set<State> getEpsilonTransactions() {
+            return epsilonTransactions;
+        }
+
+        public Transaction getTransaction() {
+            return transaction;
+        }
+
     }
 
-    private record Transaction(char symbol, State state) {}
+    private static class Transaction {
+        private final char symbol;
+        private final State state;
+
+        private final Set<Action> actions;
+
+        private Transaction(char symbol, State state) {
+            this.symbol = symbol;
+            this.state = state;
+            actions = new LinkedHashSet<>();
+        }
+
+        private Transaction(char symbol, State state, Set<Action> actions) {
+            this.symbol = symbol;
+            this.state = state;
+            this.actions = actions;
+        }
+
+        public Set<Action> getActions() {
+            return actions;
+        }
+
+        public void addAction(Action action) {
+            actions.add(action);
+        }
+
+        public State getState() {
+            return state;
+        }
+
+        public char getSymbol() {
+            return symbol;
+        }
+
+    }
 
     public static class StateSet {
         Set<State> states = new HashSet<>();

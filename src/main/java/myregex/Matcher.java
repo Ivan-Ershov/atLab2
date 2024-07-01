@@ -6,7 +6,7 @@ public class Matcher {
 
     private final DFM dfm;
     private final String input;
-    private final LinkedHashMap<Integer, Pair<Integer, Integer>> data = new LinkedHashMap<>();
+    private final LinkedHashMap<Integer, Pair<Pair<Integer, Integer>, Boolean>> data = new LinkedHashMap<>();
 
     Matcher(String input, DFM dfm) {
         this.input = input;
@@ -14,11 +14,11 @@ public class Matcher {
     }
 
     public boolean match() {
-        if (dfm.enterStartState(new Pair<>(0, data))) {
+        if (dfm.enterStartState()) {
             for (int position = 0; position < input.length(); position++) {
                 boolean isErrorState = !dfm
                         .nextStage(input.charAt(position),
-                                new Pair<>(position + 1, data));
+                                new Pair<>(position, data));
                 if (isErrorState) {
                     data.clear();
                     return false;
@@ -37,9 +37,9 @@ public class Matcher {
     public String group(int groupNumber) {
 
         boolean isGroupNumber = (data.containsKey(groupNumber) &&
-                (data.get(groupNumber).second() != null));
+                data.get(groupNumber).second());
         if (isGroupNumber) {
-            Pair<Integer, Integer> positions = data.get(groupNumber);
+            Pair<Integer, Integer> positions = data.get(groupNumber).first();
             return input.substring(positions.first(), positions.second());
         }
 

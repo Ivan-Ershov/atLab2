@@ -24,7 +24,7 @@ public class PatternTest extends Assert {
         regex = new Regex("a+");
         pattern = regex.compile();
         regex = pattern.convertToRegex();
-        expected = "Regex: (a)(a)*";
+        expected = "Regex: (a)(a){0,}";
         actual = regex.toString();
         assertEquals(expected, actual);
 
@@ -38,35 +38,35 @@ public class PatternTest extends Assert {
         regex = new Regex("a{0,}");
         pattern = regex.compile();
         regex = pattern.convertToRegex();
-        expected = "Regex: (a?)(a)*";
+        expected = "Regex: (a)(a){0,}|^";
         actual = regex.toString();
         assertEquals(expected, actual);
 
         regex = new Regex("a{1,}");
         pattern = regex.compile();
         regex = pattern.convertToRegex();
-        expected = "Regex: ((a)(a?))(a)*";
+        expected = "Regex: ((a)((a){0,1}))(a){0,}";
         actual = regex.toString();
         assertEquals(expected, actual);
 
         regex = new Regex("a{2,4}");
         pattern = regex.compile();
         regex = pattern.convertToRegex();
-        expected = "Regex: ((((a)(a))(a?))(a?))";
+        expected = "Regex: ((((a)(a))((a){0,1}))((a){0,1}))";
         actual = regex.toString();
         assertEquals(expected, actual);
 
         regex = new Regex("a{0,1}");
         pattern = regex.compile();
         regex = pattern.convertToRegex();
-        expected = "Regex: (a?)";
+        expected = "Regex: (a)|^";
         actual = regex.toString();
         assertEquals(expected, actual);
 
         regex = new Regex("a+{0,1}");
         pattern = regex.compile();
         regex = pattern.convertToRegex();
-        expected = "Regex: (a?)(a)*";
+        expected = "Regex: (a)(a){0,}|^";
         actual = regex.toString();
         assertEquals(expected, actual);
 
@@ -80,7 +80,7 @@ public class PatternTest extends Assert {
         regex = new Regex("a(d|f)");
         pattern = regex.compile();
         regex = pattern.convertToRegex();
-        expected = "Regex: ((a)(f))|((a)(d))";
+        expected = "Regex: ((a)(d))|((a)(f))";
         actual = regex.toString();
         assertEquals(expected, actual);
 
@@ -93,8 +93,8 @@ public class PatternTest extends Assert {
         pattern = pattern.getAddition();
         String expected = """
                 DFM:
-                0: (a, 1) Actions count: 0 Is end
-                1: Actions count: 0
+                0: ((a, 1)) Is end
+                1:
                 Error: Is end
                 """;
         String actual = pattern.toString();
@@ -105,8 +105,8 @@ public class PatternTest extends Assert {
         pattern = pattern.getAddition();
         expected = """
                 DFM:
-                0: (a, 1) Actions count: 0
-                1: (a, 1) Actions count: 0
+                0: ((a, 1))
+                1: ((a, 1))
                 Error: Is end
                 """;
         actual = pattern.toString();
@@ -117,9 +117,9 @@ public class PatternTest extends Assert {
         pattern = pattern.getAddition();
         expected = """
                 DFM:
-                0: (a, 1) (b, 2) Actions count: 0 Is end
-                1: Actions count: 0
-                2: Actions count: 0
+                0: ((a, 1)) ((b, 2)) Is end
+                1:
+                2:
                 Error: Is end
                 """;
         actual = pattern.toString();
