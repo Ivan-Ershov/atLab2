@@ -34,7 +34,7 @@ public class Regex {
             case REGEX -> {
                 AST ast = new AST(regularExpression);
                 NFM nfm = NFM.buildFromAst(ast);
-                yield new DFM(nfm);
+                yield (new DFM(nfm)).minimization();
             }
             case ALL_STRINGS -> DFM.getAllStrings();
             case NONE_STRINGS -> DFM.getNoneStrings();

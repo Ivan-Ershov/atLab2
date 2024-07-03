@@ -6,6 +6,113 @@ import org.junit.Test;
 public class DFMTest extends Assert {
 
     @Test
+    public void testMinimization() {
+        AST ast = new AST("ast");
+        NFM nfm = NFM.buildFromAst(ast);
+        DFM dfm = (new DFM(nfm)).minimization();
+        String expected = """
+                0: ((a, 1))
+                1: ((s, 2))
+                2: ((t, 3))
+                3: Is end
+                """;
+        String actual = dfm.toString();
+        assertEquals(expected, actual);
+
+        ast = new AST("a^s");
+        nfm = NFM.buildFromAst(ast);
+        dfm = (new DFM(nfm)).minimization();
+        expected = """
+                0: ((a, 1))
+                1: ((s, 2))
+                2: Is end
+                """;
+        actual = dfm.toString();
+        assertEquals(expected, actual);
+
+        ast = new AST("a+");
+        nfm = NFM.buildFromAst(ast);
+        dfm = (new DFM(nfm)).minimization();
+        expected = """
+                0: ((a, 1))
+                1: ((a, 1)) Is end
+                """;
+        actual = dfm.toString();
+        assertEquals(expected, actual);
+
+        ast = new AST("a|b");
+        nfm = NFM.buildFromAst(ast);
+        dfm = (new DFM(nfm)).minimization();
+        expected = """
+                0: ((a, 1)) ((b, 1))
+                1: Is end
+                """;
+        actual = dfm.toString();
+        assertEquals(expected, actual);
+
+        ast = new AST("(2:a)");
+        nfm = NFM.buildFromAst(ast);
+        dfm = (new DFM(nfm)).minimization();
+        expected = """
+                0: ((a, 1), Action: 2)
+                1: Is end
+                """;
+        actual = dfm.toString();
+        assertEquals(expected, actual);
+
+        ast = new AST("a{0,1}");
+        nfm = NFM.buildFromAst(ast);
+        dfm = (new DFM(nfm)).minimization();
+        expected = """
+                0: ((a, 1)) Is end
+                1: Is end
+                """;
+        actual = dfm.toString();
+        assertEquals(expected, actual);
+
+        ast = new AST("a{2,4}");
+        nfm = NFM.buildFromAst(ast);
+        dfm = (new DFM(nfm)).minimization();
+        expected = """
+                0: ((a, 1))
+                1: ((a, 2))
+                2: ((a, 3)) Is end
+                3: ((a, 4)) Is end
+                4: Is end
+                """;
+        actual = dfm.toString();
+        assertEquals(expected, actual);
+
+        ast = new AST("a{0,}");
+        nfm = NFM.buildFromAst(ast);
+        dfm = (new DFM(nfm)).minimization();
+        expected = """
+                0: ((a, 0)) Is end
+                """;
+        actual = dfm.toString();
+        assertEquals(expected, actual);
+
+        ast = new AST("a{1,1}");
+        nfm = NFM.buildFromAst(ast);
+        dfm = (new DFM(nfm)).minimization();
+        expected = """
+                0: ((a, 1))
+                1: Is end
+                """;
+        actual = dfm.toString();
+        assertEquals(expected, actual);
+
+        ast = new AST("a+{0,1}");
+        nfm = NFM.buildFromAst(ast);
+        dfm = (new DFM(nfm)).minimization();
+        expected = """
+                0: ((a, 0)) Is end
+                """;
+        actual = dfm.toString();
+        assertEquals(expected, actual);
+    }
+
+    @Test
     public void testMultiplication() {
         AST ast1 = new AST("ab");
         NFM nfm1 = NFM.buildFromAst(ast1);

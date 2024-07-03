@@ -80,6 +80,7 @@ class DFM {
     public DFM minimization() {
         Set<Set<State>> stateSets = new HashSet<>();
 
+        Set<State> ends = new HashSet<>(this.ends);
         Set<State> states = getStates();
         states.removeAll(ends);
         stateSets.add(states);
@@ -139,7 +140,7 @@ class DFM {
 
             }
 
-            if (previous.size() == stateSets.size()) {
+            if (previous.size() != stateSets.size()) {
                 continue;
             }
 
@@ -157,10 +158,11 @@ class DFM {
         State newStart = new State();
         HashSet<State> newEnds = new HashSet<>();
         for (Set<State> stateSet: stateSets) {
-            State state = new State();
-
+            State state;
             if (isStart(stateSet)) {
-                newStart = state;
+                state = newStart;
+            } else {
+                state = new State();
             }
 
             if (isEnd(stateSet)) {
@@ -172,9 +174,10 @@ class DFM {
 
         for (Set<State> stateSet: stateSets) {
             State state = newStates.get(stateSet);
-            getTransactions(stateSet, stateSets).forEach((character, states1) -> {
-                state.addTransaction(character, newStates.get(states1));
-            });
+            getTransactions(stateSet, stateSets).forEach((character, setSetPair) ->
+                    state.addTransaction(character,
+                            newStates.get(setSetPair.first()),
+                            setSetPair.second()));
         }
 
         return new DFM(newStart, newEnds);
@@ -202,12 +205,16 @@ class DFM {
         return false;
     }
 
-    private HashMap<Character, Set<State>> getTransactions(Set<State> states, Set<Set<State>> stateSets) {
-        HashMap<Character, Set<State>> result = new HashMap<>();
+    private HashMap<Character, Pair<Set<State>, Set<Action>>> getTransactions(Set<State> states, Set<Set<State>> stateSets) {
+        HashMap<Character, Pair<Set<State>, Set<Action>>> result = new HashMap<>();
         for (State state: states) {
             state.getTransactions().forEach((character, stateSetPair) -> {
                 if (!result.containsKey(character)) {
-                    result.put(character, getSetState(stateSets, stateSetPair.first()));
+                    result.put(character,
+                            new Pair<>(getSetState(stateSets, stateSetPair.first()),
+                                    stateSetPair.second()));
+                } else {
+                    result.get(character).second().addAll(stateSetPair.second());
                 }
             });
         }
@@ -760,10 +767,6 @@ class DFM {
 
         public void addTransaction(Character character, State state, Set<Action> action) {
             transactions.put(character, new Pair<>(state, action));
-        }
-
-        public void addTransaction(Character character, State state) {
-            transactions.put(character, new Pair<>(state, new HashSet<>()));
         }
 
         public Pair<State, Set<Action>> getNextState(Character character) {
