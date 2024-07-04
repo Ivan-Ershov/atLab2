@@ -628,8 +628,14 @@ class DFM {
 
             startRegex = new StringBuilder();
             if (stateTransaction.containsKey(start)) {
-                startRegex.append("(").append(stateTransaction.get(start)).append(")|");
+                startRegex.append("(").append(stateTransaction.get(start)).append(")");
             }
+
+            if (!startRegex.isEmpty()) {
+                regex.add(startRegex.toString().concat("{0,}"));
+            }
+
+            startRegex.append("|");
 
             for (State state: ends) {
                 if (!outgoingTransactions.get(start).containsKey(state)) {
@@ -658,11 +664,6 @@ class DFM {
 
                 startRegex = finalRegex;
 
-            }
-
-            regex.add("^");
-            if (!startRegex.isEmpty()) {
-                regex.add(startRegex);
             }
 
             ends.add(start);
